@@ -1,38 +1,71 @@
  
-# PAIRED TRIMMED
+# PAIRED TRIMMED NOTE LENGTH ARGS CHANGE
 make.file(inputdir=/work/sullivanlab/furbeck/sra-scripts/sra/pairedtrimmed/, type=fastq, prefix=stability)
 make.contigs(file=current, processors=16)
-trim.seqs(fasta=current, qaverage=35,maxlength=)
+trim.seqs(fasta=current, qaverage=35)
+screen.seqs(fasta=current, group=current, maxambig=0, maxhomop=8,minlength=200, maxlength=275)
 
 
-#PAIRED UNTRIMMED
+#PAIRED UNTRIMMED NOTE LENGTH ARGS CHANGE
 make.file(inputdir=/work/sullivanlab/furbeck/sra-scripts/sra/paireduntrimmed/, type=fastq, prefix=stability)
 make.contigs(file=current, oligos=meta.oligos, processors=16)
 trim.seqs(fasta=current, qaverage=35, maxlength=)
+screen.seqs(fasta=current, group=current, maxambig=0, maxhomop=8,minlength=200, maxlength=275)
 
 
-#SINGLE TRIMMED
-fastq.info(fastq=/work/sullivanlab/furbeck/sra-scripts/sra/singletrimmed/SRR8594323.fastq)
-trim.seqs(fasta=current, qfile=current ,qaverage=35, maxlength=)
+#SINGLE TRIMMED NOTE LENGTH ARGS CHANGE
+#OKAY I NEED HELP BECAUSE I HAVE NO BRAIN CELLS AND DID THIS PART MANUALLY. MAKE A FILE CALLED stability.files that lists group and fasta:
+SRR8594323	SRR8594323.fastq
+
+fastq.info(file=stability.files, pacbio=T)
+trim.seqs(fasta=current, group=stability.group qfile=current ,qaverage=35)
+screen.seqs(fasta=current, group=current, maxambig=0, maxhomop=8,minlength=400, maxlength=444)
+
  
-#SINGLE UNTRIMMED
-fastq.info(fastq=/work/sullivanlab/furbeck/sra-scripts/sra/singleuntrimmed/SRR9940699.fastq)
-trim.seqs(fasta=current, qfile=current, oligos=meta.oligos, pdiffs=5,qaverage=35, maxlength=)
+#SINGLE UNTRIMMED NOT LENGTH ARGS CHANGE
+#OKAY I NEED HELP BECAUSE I HAVE NO BRAIN CELLS AND DID THIS PART MANUALLY. MAKE A FILE CALLED stability.files that lists group and fasta:
+SRR8594323	SRR8594323.fastq
+fastq.info(fastq=stability.files)
+trim.seqs(fasta=current, qfile=current, group=stability.group oligos=meta.oligos, pdiffs=5,qaverage=35)
+screen.seqs(fasta=current, group=current, maxambig=0, maxhomop=8,minlength=400,maxlength=450)
 
 
-#DETERMINE IF max/min LENGTH IS NEEDED ON STUDY BASIS
 
 
-#DOWNSTREAM
-screen.seqs(fasta=current, group=current, maxambig=0, maxhomop=8,maxlength=275)
-unique.seqs()
-count.seqs(name=current, group=current)
+##DOWNSTREAM MERGING 
+#MERGE FASTA
+#PairedT stability.trim.contigs.trim.good.fasta
+#PairedUT stability.trim.contigs.trim.good.fasta
+#SingleT stability.trim.good.fasta
+#SingleUT stability.trim.good.fasta
+
+merge.files(input=fileA-fileB-fileC, output=merged.fasta)
+
+#MERGE GROUPS
+#PairedT stability.contigs.groups
+#PairedUT stability.contigs.groups
+#SingleT stability.group
+#SingleUT stability.group
+
+merge.files(input=mergeA-mergeB-mergeC, output=merged.group)
+
+
+
+unique.seqs(fasta=merged.fasta)
+count.seqs(name=current, group=merged.group)
 align.seqs(fasta=current, reference=/work/sullivanlab/furbeck/mothur/silva.seed_v132.pcr.align)
 summary.seqs(fasta=current)
 screen.seqs(fasta=current, count=current, maxhomop=8)
 filter.seqs(fasta=current, vertical=T, trump=.)
 unique.seqs(fasta=current, count=current)
 pre.cluster(fasta=current, count=current, diffs=2)
-chimera.vsearch(fasta=current, count=current, dereplicate=t, reference=/work/sullivanlab/furbeck/mothur/silva.gold.align)
+chimera.vsearch(fasta=current, reference=/work/sullivanlab/furbeck/mothur/silva.gold.align)
 remove.seqs(fasta=current, accnos=current)
-classify.seqs(fasta=current, count=current, reference=/work/sullivanlab/furbeck/mothur/silva_v132.pcr.align, taxonomy=/work/sullivanlab/furbeck/mothur/silva_v132.tax, cutoff=80)
+classify.seqs(fasta=current, count=current, reference=/work/sullivanlab/furbeck/mothur/silva.seed_v132.pcr.align, taxonomy=/work/sullivanlab/furbeck/mothur/silva.seed_v132.tax, cutoff=80)
+remove.lineage(fasta=current,count=current,taxonomy=current, taxon=Chloroplast-Mitochondria-unknown-Archaea-Eukaryota)
+cluster.split(fasta=current, count=current, taxonomy=current, splitmethod=classify, taxlevel=6, cutoff=0.03)
+make.shared(list=current, count=current, label=0.03)
+classify.otu(list=current, taxonomy=current, label=0.03)
+dist.seqs(fasta=current, output=lt, processors=16)
+clearcut(phylip=current)
+
