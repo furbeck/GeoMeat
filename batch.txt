@@ -39,7 +39,7 @@ screen.seqs(fasta=current, group=current, maxambig=0, maxhomop=8,minlength=400,m
 #SingleT stability.trim.good.fasta
 #SingleUT stability.trim.good.fasta
 
-merge.files(input=fileA-fileB-fileC, output=merged.fasta)
+merge.files(input=fileA-fileB-fileC-fileD, output=merged.fasta)
 
 #MERGE GROUPS
 #PairedT stability.contigs.groups
@@ -47,7 +47,7 @@ merge.files(input=fileA-fileB-fileC, output=merged.fasta)
 #SingleT stability.group
 #SingleUT stability.group
 
-merge.files(input=mergeA-mergeB-mergeC, output=merged.group)
+merge.files(input=mergeA-mergeB-mergeC-mergeD, output=merged.group)
 
 
 
