@@ -4,6 +4,11 @@ author: "Rebecca Furbeck"
 date: "10/21/2021"
 output: html_document
 ---
+
+THINGS STILL BROKEN:
+-tre names
+-still mitchondria and chloroplast
+-are the "unclassified" ones having problems aligning?
 ```{r}
 library(ggplot2)
 library(vegan) # ecological diversity analysis
@@ -13,6 +18,7 @@ library(grid)
 library(reshape2) # data manipulation package
 library(cowplot)
 library(phyloseq)
+library(phytools)
 ```
 
 Import
@@ -22,18 +28,36 @@ mothurlist = "fullmerge.list"
 taxfile = "fullmerge.cons.taxonomy"
 treefile <- "fullmerge.phylip.tre" 
 mapfile = "DataListingsMeatandEnvONLY.xlsx - MappingFile.csv"
-
+tree<-read.newick("patched.tre")
+xtree<-phy_tree(tree)
 # Import mothur data
 mothur_data <- import_mothur(mothur_shared_file = sharedfile,
                              mothur_list_file = mothurlist,
                              #mothur_tree_file = treefile,
                              mothur_constaxonomy_file = taxfile)
 
+#Achilles test
+achi_data <- import_mothur(mothur_shared_file = "output.shared",
+                             mothur_list_file = "output.list",
+                            # mothur_tree_file = "patched.tre",
+                             mothur_constaxonomy_file = "output.taxonomy")
 ```
 
 Lets see who is there
 ```{r}
-plot_bar(mothur_data, fill="Rank2")
+plot_bar(achi_data, fill="Rank2")
+```
+
+Normalize Because Wow 
+```{r}
+norm_mock <-  transform_sample_counts(achi_data, function(x) x / sum(x) )
+#Use Top 50 Taxa for plots
+top50 <- names(sort(taxa_sums(norm_mock), decreasing=TRUE))[1:50]
+ps.top50 <- transform_sample_counts(norm_mock, function(OTU) OTU/sum(OTU))
+ps.top50 <- prune_taxa(top50, ps.top50)
+
+#Well this is overwhelming and disorganized
+plot_bar(ps.top50, fill = "Rank3") 
 ```
 
 Alpha Diversity
@@ -42,19 +66,24 @@ alpha_meas = c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson")
 
 # plotting the alpha diversity estimators and color by time point
 # adding plotting information to object "p"
-p <- plot_richness(mothur_data, measures=alpha_meas)
+p <- plot_richness(achi_data, measures=alpha_meas)
 
 # plot data from "p" as a boxplot with ggplot2
 p 
+
+#plot rarefied data
+p2 <- plot_richness(achi_scaled, measures=alpha_meas)
+p2
 ```
+
 
 Look at abundances of top 100
 ```{r}
 topN <- 100
-most_abundant_taxa = sort(taxa_sums(mothur_data), TRUE)[1:topN]
+most_abundant_taxa = sort(taxa_sums(achi_data), TRUE)[1:topN]
 
 #extract most_abundant_taxa from mouse_data
-mouse_100_OTUs <- prune_taxa(names(most_abundant_taxa), mothur_data)
+mouse_100_OTUs <- prune_taxa(names(most_abundant_taxa), achi_data)
 
 # create a dataframe with the counts per otu
 mouse_otu_sums <- data.frame(taxa_sums(mouse_100_OTUs))
@@ -72,20 +101,22 @@ ggplot(mouse_otu_sums,aes(x=row.names(mouse_otu_sums), y=taxa_sums.mouse_100_OTU
 
 Tree not working idk
 ```{r}
-plot_tree(mothur_data, color=c("Rank3"))
+phy_tree("patched.tre")
+
+plot_tree(phy_tree("patched.tre"), color=c("Rank3"))
 
 ```
 
 Rarefy
 ```{r}
-mothur_scaled <- rarefy_even_depth(mothur_data, sample.size = 2000, replace = FALSE, rngseed = 1)
+achi_scaled <- rarefy_even_depth(achi_data, sample.size = 2000, replace = FALSE, rngseed = 1)
 
 ```
 
 PCA Beta Div
 ```{r}
 mothur_pcoa <- ordinate(
-  physeq = mothur_scaled, 
+  physeq = achi_scaled, 
   method = "PCoA", 
   distance = "bray"
 )
@@ -94,7 +125,15 @@ mothur_pcoa <- ordinate(
 Scree plot to check PCs
 ```{r}
 plot_ordination(
-  physeq = mothur_scaled,
+  physeq = achi_scaled,
   ordination = mothur_pcoa,
   type="scree")
 ```
+
+```{r}
+plot_ordination(
+  physeq = achi_scaled,
+  ordination = mothur_pcoa,
+  type="samples")
+```
+
